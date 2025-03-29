@@ -7,7 +7,7 @@
 #pragma once
 
 #include "SoundInterface/SourceVoiceManager.h"
-#include "AudioFile.h"
+#include "AudioFile/AudioFile.h"
 
 #define DEFAULT_OUTPUT_DEVICE_NAME     "Default"
 #define DEFAULT_OUTPUT_DEVICE_ID       "default"

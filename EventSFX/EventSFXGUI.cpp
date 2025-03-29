@@ -94,7 +94,7 @@ void EventSfx::RenderSettings()
 
     // Write user guide
     ImGui::Separator();
-    if (ImGui::TreeNode("Guide for the user (please excuse the wall of text)"))
+    if (ImGui::TreeNode("Guide for the user"))
     {
         ImGui::BulletText(
             "Place your custom .wav or .aiff files in the sounds folder (*BAKKESMODPATH*\\bakkesmod\\data\\EventSFX\\).");
