@@ -56,6 +56,8 @@ void to_json(json& j, const PluginSettings& p)
         {"output_id", Utils::WStringToString(p.OutputId)},
         {"soundtracking_enabled", p.SoundTrackingEnabled},
         {"previews_enabled", p.PreviewsEnabled},
+        {"pling_enabled", p.CrossbarPlingEnabled},
+        {"fixed_crossbar_vol", p.FixedCrossbarVolume},
         {"sounds", p.Sounds}
     };
 }
@@ -68,6 +70,8 @@ void from_json(const json& j, PluginSettings& p)
     p.OutputId = Utils::StringToWString(j["output_id"]);
     j.at("soundtracking_enabled").get_to(p.SoundTrackingEnabled);
     j.at("previews_enabled").get_to(p.PreviewsEnabled);
+    j.at("pling_enabled").get_to(p.CrossbarPlingEnabled);
+    j.at("fixed_crossbar_vol").get_to(p.FixedCrossbarVolume);
     j.at("sounds").get_to(p.Sounds);
 
     if (p.Volume < MIN_PLUGIN_VOLUME) p.Volume = MIN_PLUGIN_VOLUME;
@@ -85,8 +89,11 @@ void PluginSettings::SetDefaults()
     this->OutputId                           = L"default";
     this->SoundTrackingEnabled               = true;
     this->PreviewsEnabled                    = true;
+    this->CrossbarPlingEnabled               = true;
+    this->FixedCrossbarVolume                = false;
     this->Sounds[RlEvents::Kind::Bump]       = {"bonk.wav", true, 0.0f, 1.0f};
     this->Sounds[RlEvents::Kind::Demo]       = {"sm64_mario_so_long_bowser.wav", true, 0.0f, 1.0f};
+    this->Sounds[RlEvents::Kind::Crossbar]   = {"goofy_collision.wav", true, 0.0f, 1.0f};
     this->Sounds[RlEvents::Kind::Win]        = {"sm64_mario_game_over.wav", true, 0.1f, 1.0f};
     this->Sounds[RlEvents::Kind::Loss]       = {"sm64_mario_lost_a_life.wav", true, 0.1f, 1.0f};
     this->Sounds[RlEvents::Kind::PlayerGoal] = {"sm64_mario_waha.wav", true, 0.1f, 1.0f};

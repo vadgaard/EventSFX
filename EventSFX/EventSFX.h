@@ -49,23 +49,26 @@ public:
 
     void OnBump(CarWrapper carWrapper, const BumpParams* bumpData);
     void OnStatTickerMessage(const StatTickerParams* statParams);
+    void OnCrossbarTrigger(CrossbarParams* crossbarParams);
 
     /* Audio */
 
     // Playing sound from filename
     inline void PlaySoundFile(
-        const std::string&                    soundId,
+        const std::string& soundId,
         const SoundInterface::PlaybackParams& params = std::nullopt,
         float                                 volume = 1.0f);
 
     // Playing sound from event type
     void PlayEventSound(
         RlEvents::Kind                        eventId,
-        const SoundInterface::PlaybackParams& params = std::nullopt);
+        const SoundInterface::PlaybackParams& params = std::nullopt,
+        float                                 volumeMultiplier = 1.0f);
 
     // Helpers
     inline void PlayBumpSfx(const Vector& location, bool fromMenu = false);
     inline void PlayDemoSfx(const Vector& location, bool fromMenu = false);
+    inline void PlayCrossbarSfx(const Vector& location, float multiplier = 1.0f, bool fromMenu = false);
     inline void PlayPlayerGoalSfx();
     inline void PlayTeamGoalSfx();
     inline void PlayConcedeSfx();
@@ -109,8 +112,13 @@ public:
 
     // Timing out bumps
     using TimeStampMap = std::map<uintptr_t, std::chrono::steady_clock::time_point>;
-    TimeStampMap              NotedBumps;
-    std::chrono::milliseconds BumpTimeout = std::chrono::milliseconds(200);
+    TimeStampMap NotedBumps;
+    const std::chrono::milliseconds BumpTimeout = std::chrono::milliseconds(200);
+
+    // Timing out crossbar sound
+    const std::chrono::milliseconds CrossbarTimeout = std::chrono::milliseconds(200);
+    std::chrono::steady_clock::time_point LastPling = std::chrono::steady_clock::time_point();
+    float lastMultiplier = 1.0f;
 
     // The sound interface
     SoundInterface::SoundManager SoundManager;

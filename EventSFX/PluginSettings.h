@@ -29,11 +29,13 @@ struct SoundSettings
 class PluginSettings
 {
 public:
-    float                        Volume;
-    std::wstring                 OutputId;
-    bool                         SoundTrackingEnabled;
-    bool                         PreviewsEnabled;
-    std::array<SoundSettings, 9> Sounds;
+    float                         Volume;
+    std::wstring                  OutputId;
+    bool                          SoundTrackingEnabled;
+    bool                          PreviewsEnabled;
+    bool                          CrossbarPlingEnabled;
+    bool                          FixedCrossbarVolume;
+    std::array<SoundSettings, 10> Sounds;
 
     PluginSettings();
 

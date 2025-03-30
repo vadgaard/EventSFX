@@ -10,6 +10,7 @@ namespace RlEvents
 		{
 			Bump = 0,
 			Demo,
+			Crossbar,
 			Win,
 			Loss,
 			PlayerGoal,
@@ -36,64 +37,39 @@ namespace RlEvents
 
 	inline bool IsEvent3D(const Kind eventId)
 	{
-		return static_cast<int>(eventId) < 2;
+		return static_cast<int>(eventId) < 3;
 	}
 
-	inline std::string GetPlural(const Kind eventId)
+	inline std::string GetEventLabel(const Kind eventId)
 	{
 		switch (eventId)
 		{
 		case Kind::Bump:
-			return "bumps";
+			return "bump";
 		case Kind::Demo:
-			return "demos";
+			return "demo";
+		case Kind::Crossbar:
+			return "crossbar";
 		case Kind::Win:
-			return "wins";
+			return "win";
 		case Kind::Loss:
-			return "losses";
+			return "loss";
 		case Kind::PlayerGoal:
-			return "player goals";
+			return "player goal";
 		case Kind::TeamGoal:
-			return "team goals";
+			return "team goal";
 		case Kind::Concede:
-			return "concedes";
+			return "concede";
 		case Kind::Save:
-			return "saves";
+			return "save";
 		case Kind::Assist:
-			return "assists";
+			return "assist";
 		default:
 			return "NA";
 		}
 	}
 
-	inline std::string GetSingular(const Kind eventId)
-	{
-		std::string singular = GetPlural(eventId);
-		switch (eventId)
-		{
-		case Kind::Loss:
-			singular.pop_back();
-			[[fallthrough]];
-		default:
-			singular.pop_back();
-			return singular;
-		}
-	}
-
-	inline std::string GetPluralStringId(const Kind eventId)
-	{
-		switch (eventId)
-		{
-		case Kind::PlayerGoal:
-			return "playergoals";
-		case Kind::TeamGoal:
-			return "teamgoals";
-		default:
-			return GetPlural(eventId);
-		}
-	}
-
-	inline std::string GetSingularStringId(const Kind eventId)
+	inline std::string GetEventStringId(const Kind eventId)
 	{
 		switch (eventId)
 		{
@@ -102,7 +78,7 @@ namespace RlEvents
 		case Kind::TeamGoal:
 			return "teamgoal";
 		default:
-			return GetSingular(eventId);
+			return GetEventLabel(eventId);
 		}
 	}
 }

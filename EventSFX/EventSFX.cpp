@@ -213,46 +213,79 @@ void EventSfx::InitializeNotifiers()
         PERMISSION_ALL
     );
 
+    // Notifier: Toggle crossbar pling
+    this->cvarManager->registerNotifier(
+        TOGGLE_PLING_NOTIFIER,
+        [this](std::vector<std::string>)
+        {
+            this->Settings->CrossbarPlingEnabled = !this->Settings->CrossbarPlingEnabled;
+        },
+        "Toggle default crossbar pling",
+        PERMISSION_ALL
+    );
+
+    // Notifier: Disable crossbar pling
+    this->cvarManager->registerNotifier(
+        DISABLE_PLING_NOTIFIER,
+        [this](std::vector<std::string>)
+        {
+            this->Settings->CrossbarPlingEnabled = false;
+        },
+        "Disable default crossbar pling",
+        PERMISSION_ALL
+    );
+
+    // Notifier: Enable crossbar pling
+    this->cvarManager->registerNotifier(
+        DISABLE_PLING_NOTIFIER,
+        [this](std::vector<std::string>)
+        {
+            this->Settings->CrossbarPlingEnabled = true;
+        },
+        "Enable default crossbar pling",
+        PERMISSION_ALL
+    );
+
     for (int i = 0; i < this->Settings->Sounds.size(); ++i)
     {
         auto eventId = static_cast<RlEvents::Kind>(i);
 
         // Notifier: Toggle rl_events
         this->cvarManager->registerNotifier(
-            TOGGLE_EVENT_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            TOGGLE_EVENT_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](std::vector<std::string>)
             {
                 this->Settings->Sounds[i].IsEnabled = !this->Settings->Sounds[i].IsEnabled;
             },
-            "Toggle " + GetPlural(eventId),
+            "Toggle " + GetEventLabel(eventId),
             PERMISSION_ALL
         );
 
         // Notifier: Enable rl_events
         this->cvarManager->registerNotifier(
-            ENABLE_EVENT_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            ENABLE_EVENT_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](std::vector<std::string>)
             {
                 this->Settings->Sounds[i].IsEnabled = true;
             },
-            "Enable " + GetPlural(eventId),
+            "Enable " + GetEventLabel(eventId),
             PERMISSION_ALL
         );
 
         // Notifier: Disable rl_events
         this->cvarManager->registerNotifier(
-            DISABLE_EVENT_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            DISABLE_EVENT_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](std::vector<std::string>)
             {
                 this->Settings->Sounds[i].IsEnabled = false;
             },
-            "Disable " + GetPlural(eventId),
+            "Disable " + GetEventLabel(eventId),
             PERMISSION_ALL
         );
 
         // Notifier: Set sound for event
         this->cvarManager->registerNotifier(
-            SET_EVENT_SOUND_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            SET_EVENT_SOUND_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](const std::vector<std::string>& args)
             {
                 if (args.size() < 2) return;
@@ -270,24 +303,24 @@ void EventSfx::InitializeNotifiers()
                     this->Settings->Sounds[i].SoundId = soundId;
                 }
             },
-            "Set " + GetSingular(eventId) + " sound",
+            "Set custom " + GetEventLabel(eventId) + " sound",
             PERMISSION_ALL
         );
 
         // Notifier: Play event sounds
         this->cvarManager->registerNotifier(
-            PLAY_EVENT_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            PLAY_EVENT_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, eventId](std::vector<std::string>)
             {
                 this->PlayEventSound(eventId);
             },
-            "Play " + GetSingular(eventId) + " sound",
+            "Play " + GetEventLabel(eventId) + " sound",
             PERMISSION_ALL
         );
 
         // Notifier: Set event volume
         this->cvarManager->registerNotifier(
-            SET_EVENT_VOLUME_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            SET_EVENT_VOLUME_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](const std::vector<std::string>& args)
             {
                 if (args.size() < 2) return;
@@ -314,13 +347,13 @@ void EventSfx::InitializeNotifiers()
                     LOG("INVALID ARGUMENT: COULD NOT CONVERT '" + volumeStr + "' TO AN INT.");
                 }
             },
-            "Set the " + GetSingular(eventId) + " submix volume",
+            "Set the " + GetEventLabel(eventId) + " submix volume",
             PERMISSION_ALL
         );
 
         // Notifier: Set event delay
         this->cvarManager->registerNotifier(
-            SET_EVENT_DELAY_NOTIFIER_PARTIAL + GetSingularStringId(eventId),
+            SET_EVENT_DELAY_NOTIFIER_PARTIAL + GetEventStringId(eventId),
             [this, i](const std::vector<std::string>& args)
             {
                 if (args.size() < 2) return;
@@ -344,7 +377,7 @@ void EventSfx::InitializeNotifiers()
                     LOG("INVALID ARGUMENT: COULD NOT CONVERT '" + delayStr + "' TO A FLOAT.");
                 }
             },
-            "Set the " + GetSingular(eventId) + " delay",
+            "Set the " + GetEventLabel(eventId) + " delay",
             PERMISSION_ALL
         );
     }
@@ -404,6 +437,14 @@ void EventSfx::InitializeHooks()
         [this](ServerWrapper, void* params, std::string)
         {
             this->OnStatTickerMessage(static_cast<StatTickerParams*>(params));
+        });
+
+    // Crossbar hit
+    this->gameWrapper->HookEventWithCaller<ActorWrapper>(
+        "Function TAGame.GoalCrossbarVolumeManager_TA.TriggerHit",
+        [this](auto caller, void* params, ...)
+        {
+            this->OnCrossbarTrigger(static_cast<CrossbarParams*>(params));
         });
 
     // Recommended volume
@@ -658,6 +699,68 @@ void EventSfx::OnStatTickerMessage(const StatTickerParams* statParams)
     }
 }
 
+void EventSfx::OnCrossbarTrigger(CrossbarParams* crossbarParams)
+{
+    const bool customEnabled = this->Settings->Sounds[RlEvents::Kind::Crossbar].IsEnabled;
+
+    const Vector location = crossbarParams->HitLocation;
+
+    // Is default pling enabled?
+    if (!this->Settings->CrossbarPlingEnabled)
+    {
+        crossbarParams->HitLocation = { 0, 0, 0 };
+    }
+
+    if (!customEnabled) return;
+
+    // Do we have a game state?
+    auto state = this->gameWrapper->GetCurrentGameState();
+    if (state.IsNull())
+    {
+        this->PlayCrossbarSfx(location);
+        return;
+    }
+
+    // Do we have a ball?
+    auto ball = state.GetBall();
+    if (ball.IsNull())
+    {
+        this->PlayCrossbarSfx(location);
+        return;
+    }
+
+    float multiplier;
+
+    // Compute the multiplier
+    if (this->Settings->FixedCrossbarVolume)
+    {
+        multiplier = 1.0;
+
+        // LOG("MULTIPLIER: {}", multiplier);
+    }
+    else
+    {
+        float speed = ball.GetVelocity().magnitude();
+        multiplier = Utils::ComputeVolumeMultiplier(speed);
+
+        // LOG("SPEED: {} ({}kph), MULTIPLIER: {}", speed, (speed * 60 * 60) / 100 / 1000, multiplier);
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+
+    // Is the sound still timed out or too close in volume to the previous?
+    if (now - this->LastPling < this->CrossbarTimeout && multiplier / this->lastMultiplier < 3.0f)
+        return;
+
+    // Note timestamp etc.
+    this->LastPling = now;
+    this->lastMultiplier = multiplier;
+
+    // Play the sound
+    this->PlayCrossbarSfx(location, multiplier);
+}
+
+
 /* AUDIO */
 
 inline void EventSfx::PlaySoundFile(
@@ -674,20 +777,23 @@ inline void EventSfx::PlaySoundFile(
 
 void EventSfx::PlayEventSound(
     const RlEvents::Kind                  eventId,
-    const SoundInterface::PlaybackParams& params)
+    const SoundInterface::PlaybackParams& params,
+    float                                 volumeMultiplier)
 {
     const SoundSettings& soundSettings = this->Settings->Sounds[static_cast<int>(eventId)];
 
+    float volume = soundSettings.Volume * volumeMultiplier;
+
     if (constexpr float epsilon = 0.04f; soundSettings.Delay <= epsilon)
     {
-        this->PlaySoundFile(soundSettings.SoundId, params, soundSettings.Volume);
+        this->PlaySoundFile(soundSettings.SoundId, params, volume);
     }
     else
     {
         this->gameWrapper->SetTimeout(
-            [this, soundSettings, params](GameWrapper*)
+            [this, soundSettings, params, volume](GameWrapper*)
             {
-                this->PlaySoundFile(soundSettings.SoundId, params, soundSettings.Volume);
+                this->PlaySoundFile(soundSettings.SoundId, params, volume);
             }, soundSettings.Delay);
     }
 }
@@ -702,6 +808,22 @@ inline void EventSfx::PlayDemoSfx(const Vector& location, bool fromMenu)
 {
     auto params = std::make_pair(location, fromMenu);
     this->PlayEventSound(RlEvents::Kind::Demo, params);
+}
+
+inline void EventSfx::PlayCrossbarSfx(const Vector& location, float multiplier, bool fromMenu)
+{
+    /*
+    for (float testSpeed = 0 ; testSpeed <= 6000.0f ; testSpeed += 250.0f)
+    {
+        float testMult = computeMultiplier(testSpeed);
+        LOG("SPEED {} -> {}", testSpeed, testMult);
+    }
+
+    LOG("MULTIPLIER: {}", multiplier);
+    */
+
+    auto params = std::make_pair(location, fromMenu);
+    this->PlayEventSound(RlEvents::Kind::Crossbar, params, multiplier);
 }
 
 inline void EventSfx::PlayPlayerGoalSfx()
@@ -790,3 +912,23 @@ inline bool EventSfx::SaveSettings(const std::string& filename) const
 {
     return this->Settings->Save(filename);
 }
+
+/*
+struct AGoalCrossbarVolumeManager_TA_execTriggerHit_Parameters
+{
+    void* Ball;
+    void* Crossbar;
+    struct Vector HitLoc;
+    struct Vector HitNormal;
+};
+
+
+    gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GoalCrossbarVolumeManager_TA.TriggerHit",
+                                                   [](auto caller, void* params, ...)
+                                                   {
+                                                       auto p = reinterpret_cast<
+                                                           AGoalCrossbarVolumeManager_TA_execTriggerHit_Parameters*>(
+                                                           params);
+                                                       p->HitLoc = {0, 0, 0};
+                                                   });
+*/

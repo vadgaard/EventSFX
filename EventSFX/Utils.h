@@ -59,6 +59,58 @@ namespace Utils
         return strTo;
     }
 
+    inline float ComputeVolumeMultiplier(float speed)
+    {
+        // === Tweakable Parameters ===
+        const float minSpeed    = 100.0f;
+        const float midStart    = 800.0f;
+        const float midEnd      = 2500.0f;
+        const float maxSpeed    = 6000.0f;
+
+        const float minVolume   = 0.0f;
+        const float midVolume   = 0.25f;
+        const float highVolume  = 0.85f;
+        const float maxVolume   = 1.2f;
+
+        float volume = 0.0f;
+
+        if (speed < minSpeed) return 0.0f;
+
+        if (speed <= midStart) {
+            // Ease-in: from minVolume to midVolume
+            float t = (speed - minSpeed) / (midStart - minSpeed);
+            float eased = std::pow(t, 2.0f); // ease-in quad
+            volume = minVolume + eased * (midVolume - minVolume);
+        }
+        else if (speed <= midEnd) {
+            // Linear region: from midVolume to highVolume
+            float t = (speed - midStart) / (midEnd - midStart);
+            volume = midVolume + t * (highVolume - midVolume);
+        }
+        else {
+            // Ease-out: from highVolume to maxVolume
+            float t = (speed - midEnd) / (maxSpeed - midEnd);
+            float eased = 1.0f - std::pow(1.0f - t, 2.0f); // ease-out quad
+            volume = highVolume + eased * (maxVolume - highVolume);
+        }
+
+        if (volume > maxVolume)
+            volume = maxVolume;
+
+        if (volume < minVolume)
+            volume = minVolume;
+
+        return std::clamp(volume, minVolume, maxVolume);
+    }
+
+    inline float GetRandomFloat(const float min, const float max)
+    {
+        std::mt19937                          gen(std::random_device{}());
+        std::uniform_real_distribution<float> dist(min, max);
+
+        return dist(gen);
+    }
+
     inline Vector GetRandomVector(const float xMax, const float yMax)
     {
         std::mt19937                          gen(std::random_device{}());

@@ -36,6 +36,7 @@ struct ClickedPosition
 namespace
 {
     ImVec2                                lastPosition;
+    std::optional<float>                  lastSpeed;
     std::vector<ClickedPosition>          clickedPositions;
     std::chrono::steady_clock::time_point lastPositionTime;
     std::chrono::milliseconds             lastPositionDuration;
@@ -45,6 +46,8 @@ constexpr auto MIN_INFO_DURATION = std::chrono::milliseconds(1500);
 
 inline void NoteClick(EventSfx* pPlugin, const RlEvents::Kind eventId, const Vector& location)
 {
+    lastSpeed = std::nullopt;
+
     // Store position for rendering
     lastPosition     = ImVec2(location.X, location.Y);
     lastPositionTime = std::chrono::steady_clock::now();
@@ -106,6 +109,8 @@ void EventSfx::RenderSettings()
         ImGui::Unindent();
         ImGui::BulletText(
             "When 3D sound tracking is enabled, in-game 3D sounds will be adjusted continuously to reflect their positions relative to the camera.");
+        ImGui::BulletText(
+            "When fixed crossbar volume is disabled, the volume of the custom crossbar sound will increase with the speed of the ball.");
         ImGui::BulletText("The recommended plugin volume is your master volume multiplied by your gameplay volume.");
         ImGui::Indent();
         ImGui::BulletText(
@@ -149,6 +154,12 @@ void EventSfx::RenderSettings()
         ImGui::SameLine(CMD_WIDTH + ITEM_SEP);
         ImGui::TextUnformatted(
             "Toggles, enables, and disables 3D sound tracking, respectively.");
+        ImGui::TextColored(
+            ImVec4(1.0f, 0.0f, 1.0f, 1.0f),
+            "eventsfx_(toggle|enable|disable)_pling");
+        ImGui::SameLine(CMD_WIDTH + ITEM_SEP);
+        ImGui::TextUnformatted(
+            "Toggles, enables, and disables the default crossbar pling, respectively.");
 
         // Events
         //ImGui::Bullet();
@@ -226,7 +237,7 @@ void EventSfx::RenderSettings()
 
     ImGui::BeginChild(
         "GeneralArea",
-        ImVec2(ITEM_WIDTH * 2 + ITEM_SEP * 2, 559),
+        ImVec2(ITEM_WIDTH * 2 + ITEM_SEP * 2, 620),
         false,
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
@@ -283,7 +294,7 @@ void EventSfx::RenderSettings()
     // Sound tracking
     bool soundTrackingEnabled = this->Settings->SoundTrackingEnabled;
 
-    if (ImGui::Checkbox("Enable 3D sound tracking", &soundTrackingEnabled))
+    if (ImGui::Checkbox("3D tracking", &soundTrackingEnabled))
     {
         this->Settings->SoundTrackingEnabled = soundTrackingEnabled;
 
@@ -301,9 +312,27 @@ void EventSfx::RenderSettings()
     // Sound tracking
     bool previewsEnabled = this->Settings->PreviewsEnabled;
 
-    if (ImGui::Checkbox("Enable audio preview", &previewsEnabled))
+    if (ImGui::Checkbox("Preview", &previewsEnabled))
     {
         this->Settings->PreviewsEnabled = previewsEnabled;
+    }
+    ImGui::SameLine();
+
+    // RL crossbar pling
+    bool plingEnabled = this->Settings->CrossbarPlingEnabled;
+
+    if (ImGui::Checkbox("Crossbar pling", &plingEnabled))
+    {
+        this->Settings->CrossbarPlingEnabled = plingEnabled;
+    }
+    ImGui::SameLine();
+
+    // Fixed crossbar volume
+    bool fixedVolumeEnabled = this->Settings->FixedCrossbarVolume;
+
+    if (ImGui::Checkbox("Fixed crossbar volume", &fixedVolumeEnabled))
+    {
+        this->Settings->FixedCrossbarVolume = fixedVolumeEnabled;
     }
 
     // Volume
@@ -502,8 +531,8 @@ void EventSfx::RenderSettings()
             bool enable = soundSettings.IsEnabled;
 
             // Decide on visuals
-            std::string plural      = GetPlural(eventId);
-            std::string enableLabel = "Enable " + plural;
+            std::string eventLabel  = GetEventLabel(eventId);
+            std::string enableLabel = "Custom " + eventLabel + " sound";
             if (is3D) enableLabel += " (3D)";
 
             // Create the checkbox
@@ -766,11 +795,16 @@ void EventSfx::DrawMapAndPositions(
             this->gameWrapper->Execute(
                 [this, location](GameWrapper*)
                 {
+                    // Compute random ball speed
+                    float speed = Utils::GetRandomFloat(500.0f, 5000.0f);
+                    float multiplier = Utils::ComputeVolumeMultiplier(speed);
+
                     // Play the sound at given position
-                    this->PlayDemoSfx(location, true);
+                    this->PlayCrossbarSfx(location, multiplier, true);
 
                     // Store information
-                    NoteClick(this, RlEvents::Kind::Demo, location);
+                    NoteClick(this, RlEvents::Kind::Crossbar, location);
+                    lastSpeed = (speed * 60 * 60) / 100 / 1000;
                 });
         }
     }
@@ -850,7 +884,7 @@ void EventSfx::DrawMapAndPositions(
         INFO_FONT_SIZE,
         textPos,
         IM_COL32(255, 255, 255, 255),
-        "right click = demo");
+        "right click = crossbar");
     textPos.y += INFO_FONT_SIZE;
 
     // Update clicked positions: remove expired and draw active
@@ -910,13 +944,23 @@ void EventSfx::DrawMapAndPositions(
 
     if (shownDuration <= lastPositionDuration)
     {
-        auto        infoPos      = ImVec2(textPos.x, areaTopLeft.y + areaSize.y - 3 * INFO_FONT_SIZE - 2);
+        uint8_t numlines = 2;
+
         std::string locationText =
             "x: "
             + std::to_string(std::lround(lastPosition.x))
             + "cm\ny: "
             + std::to_string(std::lround(lastPosition.y))
             + "cm";
+
+        if (lastSpeed.has_value())
+        {
+            locationText += "\ns: " + std::to_string(std::lround(lastSpeed.value())) + "kph";
+            numlines = 3;
+        }
+
+        auto infoPos = ImVec2(textPos.x, areaTopLeft.y + areaSize.y - (numlines + 1) * INFO_FONT_SIZE - 2);
+
         drawList->AddText(
             nullptr,
             INFO_FONT_SIZE,
@@ -925,7 +969,7 @@ void EventSfx::DrawMapAndPositions(
             locationText.c_str());
 
         // Draw in-game click distance
-        infoPos.y += INFO_FONT_SIZE * 2;
+        infoPos.y += INFO_FONT_SIZE * numlines;
         float distance = std::sqrt(std::pow(lastPosition.x, 2)
 								 + std::pow(lastPosition.y, 2));
         std::string distanceText = "d: " + std::to_string(std::lround(distance)) + "cm";

@@ -362,6 +362,7 @@ namespace SoundInterface
             {
                 auto& location = params.value().first;
                 auto& fromMenu = params.value().second;
+
                 sourceVoice    = VoiceManager.GetReadySourceVoice(&wfx, location, fromMenu);
             }
             else
@@ -377,6 +378,7 @@ namespace SoundInterface
 
         // Set the volume of source voice
         hr = sourceVoice->SetVolume(2 * volume);
+
         if (FAILED(hr))
         {
             DEBUGLOG("FAILED TO SET SOURCE VOICE VOLUME. HRESULT: {}", hr);

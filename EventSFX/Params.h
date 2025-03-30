@@ -15,3 +15,12 @@ struct BumpParams
     Vector    HitLocation;
     Vector    HitNormal;
 };
+
+
+struct CrossbarParams
+{
+    void* Ball;
+    void* Crossbar;
+    Vector HitLocation;
+    Vector HitNormal;
+};
