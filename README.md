@@ -40,3 +40,9 @@ you're using [Custom Bindings](https://bakkesplugins.com/plugins/view/228)).
 As such, EventSFX can be used as a soundboard if so desired.
 
 See the guide in the plugin settings in Rocket League for more in-depth information.
+
+## Word of Caution
+
+This was originally quickly hacked together for personal use. As such, the source
+is in desperate need of a rewrite now that it is public. Pull requests are welcome,
+but I might spend some time doing the rewrite myself at some point.
