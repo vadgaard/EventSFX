@@ -21,7 +21,7 @@ Currently, the plugin allows for custom sounds on the following events:
 
 ## Spatial Audio
 
-Bumps, demolitionss, and crossbar/goal post hits will play the given sound
+Bumps, demolitions, and crossbar/goal post hits will play the given sound
 spatially (i.e. in 3D) relative to the camera. For the immersion. Further,
 there's an option to have to volume of the crossbar/goal post hit to match
 the speed at which the ball hits.
